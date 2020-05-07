@@ -22,7 +22,7 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 import os
 os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="0"
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
 
 try:
   # %tensorflow_version only exists in Colab.
@@ -43,25 +43,9 @@ if not os.path.isdir("output"):
 
 BUFFER_SIZE = 400
 BATCH_SIZE = 16
+EPOCHS = 50
 
-#inp, re = load(PATH+'daisy/14221848160_7f0a37c395.jpg')
-## casting to int for matplotlib to show the image
-#plt.figure()
-## plt.imshow(tf.squeeze(inp)/255.0)
-#plt.imshow(inp/255.0)
-#plt.figure()
-#plt.imshow(re/255.0)
-
-from data_augmentation import load, resize, normalize, random_jitter
-
-# As you can see in the images below
-# that they are going through random jittering
-# Random jittering as described in the paper is to
-#
-# 1. Resize an image to bigger height and width
-# 2. Randomly crop to the target size
-# 3. Randomly flip the image horizontally
-from model import load_image_train, load_image_test
+from data_augmentation import normalize
 
 ## Input Pipeline
 
@@ -86,7 +70,7 @@ train_labels_list = []
 test_images = []
 test_labels = []
 
-test_len = train_labels.shape[0] // 10
+test_len = train_labels.shape[0] // 1000
 
 for idx, (image, label) in enumerate(zip(train_images, train_labels)):
   if idx < train_labels.shape[0] - test_len:
@@ -148,42 +132,14 @@ generator = Generator()
 LAMBDA = 100
 
 
-def generator_loss(disc_generated_output, gen_output, target):
-  gan_loss = loss_object(tf.ones_like(disc_generated_output), disc_generated_output)
-
+def generator_loss(gen_output, target):
   # mean absolute error
-  l1_loss = tf.reduce_mean(tf.abs(target - gen_output))
+  total_gen_loss = tf.reduce_mean(tf.abs(target - gen_output))
 
-  total_gen_loss = gan_loss + (LAMBDA * l1_loss)
-
-  return total_gen_loss, gan_loss, l1_loss
-
-
-# 
-# 
-# ![Generator Update Image](https://github.com/tensorflow/docs/blob/master/site/en/tutorials/generative/images/gen.png?raw=1)
-# 
-
-# ## Build the Discriminator
-#   * The Discriminator is a PatchGAN.
-#   * Each block in the discriminator is (Conv -> BatchNorm -> Leaky ReLU)
-#   * The shape of the output after the last layer is (batch_size, 30, 30, 1)
-#   * Each 30x30 patch of the output classifies a 70x70 portion of the input image (such an architecture is called a PatchGAN).
-#   * Discriminator receives 2 inputs.
-#     * Input image and the target image, which it should classify as real.
-#     * Input image and the generated image (output of generator), which it should classify as fake.
-#     * We concatenate these 2 inputs together in the code (`tf.concat([inp, tar], axis=-1)`)
+  return total_gen_loss
 
 
 discriminator = Discriminator()
-# tf.keras.utils.plot_model(discriminator, show_shapes=True, dpi=64)
-
-# **Discriminator loss**
-#   * The discriminator loss function takes 2 inputs; **real images, generated images**
-#   * real_loss is a sigmoid cross entropy loss of the **real images** and an **array of ones(since these are the real images)**
-#   * generated_loss is a sigmoid cross entropy loss of the **generated images** and an **array of zeros(since these are the fake images)**
-#   * Then the total_loss is the sum of real_loss and the generated_loss
-# 
 
 loss_object = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
@@ -197,19 +153,11 @@ def discriminator_loss(disc_real_output, disc_generated_output):
 
   return total_disc_loss
 
+def latent_loss(gen_logit, real_logit):
+  total_latent_loss = tf.keras.losses.MeanSquaredError(gen_logit, real_logit)
 
-# The training procedure for the discriminator is shown below.
-# 
-# To learn more about the architecture and the hyperparameters you can refer the [paper](https://arxiv.org/abs/1611.07004).
+  return total_latent_loss
 
-# 
-# ![Discriminator Update Image](https://github.com/tensorflow/docs/blob/master/site/en/tutorials/generative/images/dis.png?raw=1)
-# 
-
-# ## Define the Optimizers and Checkpoint-saver
-# 
-# 
-# 
 
 generator_optimizer = tf.keras.optimizers.Adam(2e-4, beta_1=0.5)
 discriminator_optimizer = tf.keras.optimizers.Adam(2e-4, beta_1=0.5)
@@ -250,9 +198,6 @@ checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer,
 # * Then, we calculate the gradients of loss with respect to both the generator and the discriminator variables(inputs) and apply those to the optimizer.
 # * Then log the losses to TensorBoard.
 
-EPOCHS = 150
-
-
 import datetime
 log_dir="logs/"
 
@@ -268,8 +213,9 @@ def train_step(input_image, target, epoch):
     disc_real_output = discriminator([input_image, target], training=True)
     disc_generated_output = discriminator([input_image, gen_output], training=True)
 
-    gen_total_loss, gen_gan_loss, gen_l1_loss = generator_loss(disc_generated_output, gen_output, target)
+    gen_total_loss = generator_loss(gen_output, target)
     disc_loss = discriminator_loss(disc_real_output, disc_generated_output)
+    latent_loss = latent_loss(disc_generated_output, disc_real_output)
 
   generator_gradients = gen_tape.gradient(gen_total_loss,
                                           generator.trainable_variables)
@@ -283,8 +229,6 @@ def train_step(input_image, target, epoch):
 
   with summary_writer.as_default():
     tf.summary.scalar('gen_total_loss', gen_total_loss, step=epoch)
-    tf.summary.scalar('gen_gan_loss', gen_gan_loss, step=epoch)
-    tf.summary.scalar('gen_l1_loss', gen_l1_loss, step=epoch)
     tf.summary.scalar('disc_loss', disc_loss, step=epoch)
 
 

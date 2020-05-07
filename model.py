@@ -1,8 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras import layers
 
-from data_augmentation import load, resize, normalize, random_jitter
-
 IMG_WIDTH = 28
 IMG_HEIGHT = 28
 OUTPUT_CHANNELS = 3
@@ -147,18 +145,3 @@ def generate_images(save_path, model, test_input, tar=None):
   result = cv2.cvtColor(result, cv2.COLOR_BGR2RGB)
   cv2.imwrite(save_path, result)
 
-def load_image_train(image_file):
-  input_image, real_image = load(image_file)
-  input_image, real_image = random_jitter(input_image, real_image)
-  input_image, real_image = normalize(input_image, real_image)
-
-  return input_image, real_image
-
-
-def load_image_test(image_file):
-  input_image, real_image = load(image_file)
-  input_image, real_image = resize(input_image, real_image,
-                                   IMG_HEIGHT, IMG_WIDTH)
-  input_image, real_image = normalize(input_image, real_image)
-
-  return input_image, real_image
