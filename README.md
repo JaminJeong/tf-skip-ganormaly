@@ -25,3 +25,4 @@ epoch_100.jpg
 ### Reference
  - https://nbviewer.jupyter.org/github/ilguyi/generative.models.tensorflow.v2/blob/master/gans/dcgan.ipynb
  - https://github.com/samet-akcay/skip-ganomaly
+ - https://www.tensorflow.org/tutorials/generative/pix2pix
