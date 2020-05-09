@@ -1,14 +1,8 @@
-# gray-to-color
+# skip ganormaly
 
-## pix2pix
-
-## Data Augmentation
-```bash
-$ bash data_augmentation.sh
-```
 ## Train
 ```bash
-$ bash pix2pix-gray2color.sh
+$ bash skip-ganormaly.sh
 ```
 
 ## Tensorboard
@@ -24,20 +18,10 @@ epoch_0.jpg
 epoch_100.jpg
 
 ```
-![flower_gray_origin_generation](./images/epoch_148.jpg)
 
-
-## test
-```bash
-$ bash inference.sh
-$ ls generate_image
-
-```
-
-![human_gray_origin_generation](./images/result.jpg)
-
+### Paper
+- [Skip-GANomaly: Skip Connected and Adversarially Trained Encoder-Decoder Anomaly Detection](https://arxiv.org/abs/1901.08954)
 
 ### Reference
- - https://www.tensorflow.org/tutorials/generative/pix2pix
- - https://phillipi.github.io/pix2pix/
  - https://nbviewer.jupyter.org/github/ilguyi/generative.models.tensorflow.v2/blob/master/gans/dcgan.ipynb
+ - https://github.com/samet-akcay/skip-ganomaly
