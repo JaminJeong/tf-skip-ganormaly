@@ -133,15 +133,18 @@ class Discriminator(tf.keras.Model):
 
 def generate_images(save_path, model, test_input, tar=None):
   import numpy as np
-  import cv2
+  import cv2, os
+  filepath, ext = os.path.splitext(save_path)
   prediction = model(test_input, training=True)
-
-  result = test_input[0]
-  if not tar is None:
-    result = np.concatenate((result, tar[0]), axis=1)
-  result = np.concatenate((result, prediction[0]), axis=1)
-  result = result * 0.5 + 0.5
-  result = result * 255
-  result = cv2.cvtColor(result, cv2.COLOR_BGR2RGB)
-  cv2.imwrite(save_path, result)
+  len = test_input.shape[0]
+  for idx in range(len):
+    save_idx_path = filepath + "_" + str(idx) + ext
+    result = test_input[idx]
+    if not tar is None:
+      result = np.concatenate((result, tar[idx]), axis=1)
+    result = np.concatenate((result, prediction[idx]), axis=1)
+    result = result * 0.5 + 0.5
+    result = result * 255
+    result = cv2.cvtColor(result, cv2.COLOR_BGR2RGB)
+    cv2.imwrite(save_idx_path, result)
 

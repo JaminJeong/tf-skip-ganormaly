@@ -21,8 +21,8 @@
 from __future__ import absolute_import, division, print_function, unicode_literals
 
 import os
-os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"]="2"
+# os.environ["CUDA_DEVICE_ORDER"]="PCI_BUS_ID"
+# os.environ["CUDA_VISIBLE_DEVICES"]="0"
 
 try:
   # %tensorflow_version only exists in Colab.
@@ -35,6 +35,7 @@ import os
 import time
 
 import numpy as np
+import random
 
 # from IPython import display
 
@@ -42,7 +43,7 @@ if not os.path.isdir("output"):
   os.mkdir("output")
 
 BUFFER_SIZE = 400
-BATCH_SIZE = 16
+BATCH_SIZE = 64
 EPOCHS = 50
 
 from data_augmentation import normalize
@@ -70,15 +71,32 @@ train_labels_list = []
 test_images = []
 test_labels = []
 
+train_len = train_labels.shape[0]
+shuffled_index = list(range(train_len))
+random.seed(12345)
+random.shuffle(shuffled_index)
+train_images_list = [train_images[i] for i in shuffled_index]
+train_labels_list = [train_labels[i] for i in shuffled_index]
+train_images = np.array(train_images_list)
+train_labels = np.array(train_labels_list)
+print(f"train_labels : {train_labels}")
+
 test_len = train_labels.shape[0] // 1000
+train_images_list = []
+train_labels_list = []
 
 for idx, (image, label) in enumerate(zip(train_images, train_labels)):
-  if idx < train_labels.shape[0] - test_len:
+  if test_len < idx:
     train_images_list.append(image)
     train_labels_list.append(label)
   else:
     test_images.append(image)
     test_labels.append(label)
+
+train_images = np.array(train_images_list)
+train_labels = np.array(train_labels_list)
+train_images_list = []
+train_labels_list = []
 
 for image, label in zip(train_images, train_labels):
   if not label in test_label_value:
@@ -89,6 +107,7 @@ train_images = np.array(train_images_list)
 train_labels = np.array(train_labels_list)
 test_images = np.array(test_images)
 test_labels = np.array(test_labels)
+print(f"test_labels : {test_labels}")
 
 train_images = train_images.reshape(-1, 28, 28, 1).astype('float32')
 test_images = test_images.reshape(-1, 28, 28, 1).astype('float32')
@@ -132,11 +151,21 @@ generator = Generator()
 LAMBDA = 100
 
 
-def generator_loss(gen_output, target):
-  # mean absolute error
-  total_gen_loss = tf.reduce_mean(tf.abs(target - gen_output))
+def latent_loss(gen_logit, real_logit):
+  # total_latent_loss = tf.keras.losses.MeanSquaredError(gen_logit, real_logit)
+  total_latent_loss = tf.reduce_mean(tf.square(gen_logit - real_logit))
 
-  return total_gen_loss
+  return total_latent_loss
+
+def generator_loss(gen_output, target, disc_real_output, disc_generated_output):
+  # mean absolute error
+  con_loss = tf.reduce_mean(tf.abs(target - gen_output))
+  lat_loss = latent_loss(disc_real_output, disc_generated_output)
+  adv_loss = loss_object(tf.ones_like(disc_generated_output), disc_generated_output)
+
+  total_gen_loss = 50 * con_loss + lat_loss + adv_loss
+
+  return total_gen_loss, con_loss, lat_loss, adv_loss
 
 
 discriminator = Discriminator()
@@ -146,17 +175,12 @@ loss_object = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
 def discriminator_loss(disc_real_output, disc_generated_output):
   real_loss = loss_object(tf.ones_like(disc_real_output), disc_real_output)
-
   generated_loss = loss_object(tf.zeros_like(disc_generated_output), disc_generated_output)
+  lat_loss = latent_loss(disc_real_output, disc_generated_output)
+  total_disc_loss = real_loss + generated_loss + lat_loss
 
-  total_disc_loss = real_loss + generated_loss
+  return total_disc_loss, real_loss, generated_loss, lat_loss
 
-  return total_disc_loss
-
-def latent_loss(gen_logit, real_logit):
-  total_latent_loss = tf.keras.losses.MeanSquaredError(gen_logit, real_logit)
-
-  return total_latent_loss
 
 
 generator_optimizer = tf.keras.optimizers.Adam(2e-4, beta_1=0.5)
@@ -213,9 +237,8 @@ def train_step(input_image, target, epoch):
     disc_real_output = discriminator([input_image, target], training=True)
     disc_generated_output = discriminator([input_image, gen_output], training=True)
 
-    gen_total_loss = generator_loss(gen_output, target)
-    disc_loss = discriminator_loss(disc_real_output, disc_generated_output)
-    latent_loss = latent_loss(disc_generated_output, disc_real_output)
+    gen_total_loss, con_loss, lat_loss, adv_loss = generator_loss(gen_output, target, disc_real_output, disc_generated_output)
+    disc_loss, real_loss, generated_loss, _ = discriminator_loss(disc_real_output, disc_generated_output)
 
   generator_gradients = gen_tape.gradient(gen_total_loss,
                                           generator.trainable_variables)
@@ -229,8 +252,10 @@ def train_step(input_image, target, epoch):
 
   with summary_writer.as_default():
     tf.summary.scalar('gen_total_loss', gen_total_loss, step=epoch)
+    tf.summary.scalar('con_loss', con_loss, step=epoch)
+    tf.summary.scalar('lat_loss', lat_loss, step=epoch)
+    tf.summary.scalar('adv_loss', adv_loss, step=epoch)
     tf.summary.scalar('disc_loss', disc_loss, step=epoch)
-
 
 # The actual training loop:
 # 
@@ -239,12 +264,12 @@ def train_step(input_image, target, epoch):
 # * On each epoch it iterates over the training dataset, printing a '.' for each example.
 # * It saves a checkpoint every 20 epochs.
 
-def fit(train_ds, epochs, test_ds):
+def fit(train_ds, epochs, test_ds, test_len):
   for epoch in range(epochs):
     start = time.time()
 
-    for example_input, example_target in test_ds.take(1):
-      generate_images("./output/epoch_{}.jpg".format(epoch), generator, example_input, example_target)
+    for example_input, example_target in test_ds:
+      generate_images(f"./output/epoch_{epoch}.jpg", generator, example_input, example_target)
     print("Epoch: ", epoch)
 
     # Train
@@ -271,7 +296,7 @@ def fit(train_ds, epochs, test_ds):
 
 # Now run the training loop:
 
-fit(train_dataset, EPOCHS, test_dataset)
+fit(train_dataset, EPOCHS, test_dataset, test_len)
 
 get_ipython().system('ls {}'.format(checkpoint_dir))
 
