@@ -131,11 +131,39 @@ class Discriminator(tf.keras.Model):
 
     return discriminator_logits
 
+loss_object = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+
+def latent_loss(gen_logit, real_logit):
+  # total_latent_loss = tf.keras.losses.MeanSquaredError(gen_logit, real_logit)
+  total_latent_loss = tf.reduce_mean(tf.square(gen_logit - real_logit))
+
+  return total_latent_loss
+
+def generator_loss(gen_output, target, disc_real_output, disc_generated_output):
+  # mean absolute error
+  con_loss = tf.reduce_mean(tf.abs(target - gen_output))
+  lat_loss = latent_loss(disc_real_output, disc_generated_output)
+  adv_loss = loss_object(tf.ones_like(disc_generated_output), disc_generated_output)
+
+  total_gen_loss = 50 * con_loss + lat_loss + adv_loss
+
+  return total_gen_loss, con_loss, lat_loss, adv_loss
+
+
+def discriminator_loss(disc_real_output, disc_generated_output):
+  real_loss = loss_object(tf.ones_like(disc_real_output), disc_real_output)
+  generated_loss = loss_object(tf.zeros_like(disc_generated_output), disc_generated_output)
+  lat_loss = latent_loss(disc_real_output, disc_generated_output)
+  total_disc_loss = real_loss + generated_loss + lat_loss
+
+  return total_disc_loss, real_loss, generated_loss, lat_loss
+
+
 def generate_images(save_path, model, test_input, tar=None):
   import numpy as np
   import cv2, os
   filepath, ext = os.path.splitext(save_path)
-  prediction = model(test_input, training=True)
+  prediction = model(test_input, training=False)
   len = test_input.shape[0]
   for idx in range(len):
     save_idx_path = filepath + "_" + str(idx) + ext
@@ -147,4 +175,3 @@ def generate_images(save_path, model, test_input, tar=None):
     result = result * 255
     result = cv2.cvtColor(result, cv2.COLOR_BGR2RGB)
     cv2.imwrite(save_idx_path, result)
-

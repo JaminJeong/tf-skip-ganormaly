@@ -51,7 +51,6 @@ from data_augmentation import normalize
 ## Input Pipeline
 
 # Training Flags (hyperparameter configuration)
-model_name = 'dcgan'
 dataset_name = 'mnist'
 assert dataset_name in ['mnist', 'fashion_mnist']
 learning_rate_D = 1e-4
@@ -137,55 +136,15 @@ test_dataset = test_dataset.batch(batch_size=BATCH_SIZE)
 OUTPUT_CHANNELS = 3
 
 from model import Generator, Discriminator, generate_images
+from model import generator_loss, discriminator_loss
 
 generator = Generator()
-
-# * **Generator loss**
-#   * It is a sigmoid cross entropy loss of the generated images and an **array of ones**.
-#   * The [paper](https://arxiv.org/abs/1611.07004) also includes L1 loss which is MAE (mean absolute error) between the generated image and the target image.
-#   * This allows the generated image to become structurally similar to the target image.
-#   * The formula to calculate the total generator loss = gan_loss + LAMBDA * l1_loss, where LAMBDA = 100. This value was decided by the authors of the [paper](https://arxiv.org/abs/1611.07004).
-
-# The training procedure for the generator is shown below:
-
 LAMBDA = 100
-
-
-def latent_loss(gen_logit, real_logit):
-  # total_latent_loss = tf.keras.losses.MeanSquaredError(gen_logit, real_logit)
-  total_latent_loss = tf.reduce_mean(tf.square(gen_logit - real_logit))
-
-  return total_latent_loss
-
-def generator_loss(gen_output, target, disc_real_output, disc_generated_output):
-  # mean absolute error
-  con_loss = tf.reduce_mean(tf.abs(target - gen_output))
-  lat_loss = latent_loss(disc_real_output, disc_generated_output)
-  adv_loss = loss_object(tf.ones_like(disc_generated_output), disc_generated_output)
-
-  total_gen_loss = 50 * con_loss + lat_loss + adv_loss
-
-  return total_gen_loss, con_loss, lat_loss, adv_loss
-
 
 discriminator = Discriminator()
 
-loss_object = tf.keras.losses.BinaryCrossentropy(from_logits=True)
-
-
-def discriminator_loss(disc_real_output, disc_generated_output):
-  real_loss = loss_object(tf.ones_like(disc_real_output), disc_real_output)
-  generated_loss = loss_object(tf.zeros_like(disc_generated_output), disc_generated_output)
-  lat_loss = latent_loss(disc_real_output, disc_generated_output)
-  total_disc_loss = real_loss + generated_loss + lat_loss
-
-  return total_disc_loss, real_loss, generated_loss, lat_loss
-
-
-
 generator_optimizer = tf.keras.optimizers.Adam(2e-4, beta_1=0.5)
 discriminator_optimizer = tf.keras.optimizers.Adam(2e-4, beta_1=0.5)
-
 
 checkpoint_dir = './training_checkpoints'
 checkpoint_prefix = os.path.join(checkpoint_dir, "ckpt")
@@ -193,35 +152,6 @@ checkpoint = tf.train.Checkpoint(generator_optimizer=generator_optimizer,
                                  discriminator_optimizer=discriminator_optimizer,
                                  generator=generator,
                                  discriminator=discriminator)
-
-
-# ## Generate Images
-#
-# Write a function to plot some images during training.
-#
-# * We pass images from the test dataset to the generator.
-# * The generator will then translate the input image into the output.
-# * Last step is to plot the predictions and **voila!**
-
-# Note: The `training=True` is intentional here since
-# we want the batch statistics while running the model
-# on the test dataset. If we use training=False, we will get
-# the accumulated statistics learned from the training dataset
-# (which we don't want)
-
-
-# for index, (example_input, example_target) in enumerate(test_dataset.take(1)):
-#   generate_images("./output{}.jpg".format(index), generator, example_input, example_target)
-#
-
-# ## Training
-# 
-# * For each example input generate an output.
-# * The discriminator receives the input_image and the generated image as the first input. The second input is the input_image and the target_image.
-# * Next, we calculate the generator and the discriminator loss.
-# * Then, we calculate the gradients of loss with respect to both the generator and the discriminator variables(inputs) and apply those to the optimizer.
-# * Then log the losses to TensorBoard.
-
 import datetime
 log_dir="logs/"
 
@@ -298,15 +228,5 @@ def fit(train_ds, epochs, test_ds, test_len):
 
 fit(train_dataset, EPOCHS, test_dataset, test_len)
 
-get_ipython().system('ls {}'.format(checkpoint_dir))
-
 # restoring the latest checkpoint in checkpoint_dir
 checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir))
-
-
-## Generate using test dataset
-
-# Run the trained model on a few examples from the test dataset
-for idx, (inp, tar) in enumerate(test_dataset.take(5)):
-  generate_images("./output/result_{}.jpg".format(idx), generator, inp, tar)
-
