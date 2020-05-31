@@ -27,12 +27,6 @@ $ ls ./generate_image
 ....
 ```
 
-### normal images
-
-
-### abnormal iamges
-
-
 ### Paper
 - [Skip-GANomaly: Skip Connected and Adversarially Trained Encoder-Decoder Anomaly Detection](https://arxiv.org/abs/1901.08954)
 
