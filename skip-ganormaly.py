@@ -78,7 +78,6 @@ train_images_list = [train_images[i] for i in shuffled_index]
 train_labels_list = [train_labels[i] for i in shuffled_index]
 train_images = np.array(train_images_list)
 train_labels = np.array(train_labels_list)
-print(f"train_labels : {train_labels}")
 
 test_len = train_labels.shape[0] // 1000
 train_images_list = []
@@ -104,6 +103,7 @@ for image, label in zip(train_images, train_labels):
 
 train_images = np.array(train_images_list)
 train_labels = np.array(train_labels_list)
+print(f"train_labels : {train_labels}")
 test_images = np.array(test_images)
 test_labels = np.array(test_labels)
 print(f"test_labels : {test_labels}")
