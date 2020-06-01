@@ -1,5 +1,8 @@
 # skip ganormaly
 
+## Network
+![skip-ganormaly network](./images/skipgan2.jpg)
+
 ## Train
 ```bash
 $ bash skip-ganormaly.sh
