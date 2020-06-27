@@ -6,6 +6,8 @@ import numpy as np
 from model import Generator, Discriminator, generate_images
 from model import generator_loss
 
+from dataset import MnistDataset, FashinMnishDataset
+
 if __name__ == "__main__":
 
   print("make generate_image!!")
@@ -23,49 +25,13 @@ if __name__ == "__main__":
   dataset_name = 'mnist'
   assert dataset_name in ['mnist', 'fashion_mnist']
 
-  print("Load training and eval data from tf.keras!!")
-  # Load training and eval data from tf.keras
   if dataset_name == 'mnist':
-    (train_images, train_labels), _ = \
-      tf.keras.datasets.mnist.load_data()
-  else:
-    (train_images, train_labels), _ = \
-      tf.keras.datasets.fashion_mnist.load_data()
+    mnist_dataset = MnistDataset()
+    test_images, test_labels = mnist_dataset.get_test_data()
+  if dataset_name == 'fashion_mnist':
+    fashin_mnish_dataset = FashinMnishDataset()
+    test_images, test_labels = fashin_mnish_dataset.get_test_data()
 
-  train_images_list = []
-  train_labels_list = []
-  test_images = []
-  test_labels = []
-
-  train_len = train_labels.shape[0]
-  shuffled_index = list(range(train_len))
-  random.seed(12345)
-  random.shuffle(shuffled_index)
-  train_images_list = [train_images[i] for i in shuffled_index]
-  train_labels_list = [train_labels[i] for i in shuffled_index]
-  train_images = np.array(train_images_list)
-  train_labels = np.array(train_labels_list)
-  print(f"train_labels : {train_labels}")
-
-  test_len = train_labels.shape[0] // 1000
-  train_images_list = []
-  train_labels_list = []
-
-  for idx, (image, label) in enumerate(zip(train_images, train_labels)):
-    if test_len < idx:
-      train_images_list.append(image)
-      train_labels_list.append(label)
-    else:
-      test_images.append(image)
-      test_labels.append(label)
-
-  train_images = np.array(train_images_list)
-  train_labels = np.array(train_labels_list)
-  test_images = np.array(test_images)
-  test_labels = np.array(test_labels)
-  print(f"test_labels : {test_labels}")
-
-  train_images = train_images.reshape(-1, 28, 28, 1).astype('float32')
   test_images = test_images.reshape(-1, 28, 28, 1).astype('float32')
 
   print("Compute anomaly scores!!")

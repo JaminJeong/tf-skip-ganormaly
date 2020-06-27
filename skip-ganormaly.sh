@@ -1,1 +1,1 @@
-CUDA_VISIBLE_DEVICES=0 ipython skip-ganormaly.py
+CUDA_VISIBLE_DEVICES=0 python skip-ganormaly.py -t fashion_mnist

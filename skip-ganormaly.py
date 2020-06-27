@@ -34,8 +34,14 @@ import tensorflow as tf
 import os
 import time
 
-import numpy as np
-import random
+import argparse
+
+parser = argparse.ArgumentParser(prog="training parameter",
+                                 description="training parameter", add_help=True)
+parser.add_argument('-t', '--DATATYPE', help='data type.', default='mnist', required=True)
+args = parser.parse_args()
+
+from dataset import MnistDataset, FashinMnishDataset
 
 # from IPython import display
 
@@ -51,62 +57,23 @@ from data_augmentation import normalize
 ## Input Pipeline
 
 # Training Flags (hyperparameter configuration)
-dataset_name = 'mnist'
+dataset_name = args.DATATYPE
 assert dataset_name in ['mnist', 'fashion_mnist']
 learning_rate_D = 1e-4
 learning_rate_G = 1e-4
 
-# Load training and eval data from tf.keras
 if dataset_name == 'mnist':
-  (train_images, train_labels), _ = \
-      tf.keras.datasets.mnist.load_data()
-else:
-  (train_images, train_labels), _ = \
-      tf.keras.datasets.fashion_mnist.load_data()
+    mnist_dataset = MnistDataset()
+    train_images, train_labels = mnist_dataset.get_train_data()
+    test_images, test_labels = mnist_dataset.get_test_data()
+if dataset_name == 'fashion_mnist':
+    fashin_mnish_dataset = FashinMnishDataset()
+    train_images, train_labels = fashin_mnish_dataset.get_train_data()
+    test_images, test_labels = fashin_mnish_dataset.get_test_data()
 
-test_label_value = [2, 3]
-train_images_list = []
-train_labels_list = []
-test_images = []
-test_labels = []
+test_len = len(test_images)
 
-train_len = train_labels.shape[0]
-shuffled_index = list(range(train_len))
-random.seed(12345)
-random.shuffle(shuffled_index)
-train_images_list = [train_images[i] for i in shuffled_index]
-train_labels_list = [train_labels[i] for i in shuffled_index]
-train_images = np.array(train_images_list)
-train_labels = np.array(train_labels_list)
-
-test_len = train_labels.shape[0] // 1000
-train_images_list = []
-train_labels_list = []
-
-for idx, (image, label) in enumerate(zip(train_images, train_labels)):
-  if test_len < idx:
-    train_images_list.append(image)
-    train_labels_list.append(label)
-  else:
-    test_images.append(image)
-    test_labels.append(label)
-
-train_images = np.array(train_images_list)
-train_labels = np.array(train_labels_list)
-train_images_list = []
-train_labels_list = []
-
-for image, label in zip(train_images, train_labels):
-  if not label in test_label_value:
-    train_images_list.append(image)
-    train_labels_list.append(label)
-
-train_images = np.array(train_images_list)
-train_labels = np.array(train_labels_list)
-print(f"train_labels : {train_labels}")
-test_images = np.array(test_images)
-test_labels = np.array(test_labels)
-print(f"test_labels : {test_labels}")
+test_images = test_images.reshape(-1, 28, 28, 1).astype('float32')
 
 train_images = train_images.reshape(-1, 28, 28, 1).astype('float32')
 test_images = test_images.reshape(-1, 28, 28, 1).astype('float32')
