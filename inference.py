@@ -31,12 +31,13 @@ if __name__ == "__main__":
   if dataset_name == 'fashion_mnist':
     fashin_mnish_dataset = FashinMnishDataset()
     test_images, test_labels = fashin_mnish_dataset.get_test_data()
+    random_noise_test_images, _ = fashin_mnish_dataset.get_test_data()
 
   test_images = test_images.reshape(-1, 28, 28, 1).astype('float32')
 
   print("Compute anomaly scores!!")
 
-  for idx, (test_image, test_label) in enumerate(zip(test_images, test_labels)):
+  for idx, (test_image, test_label) in enumerate(zip(random_noise_test_images, test_labels)):
     test_image = (test_image / 127.5) - 1
     test_image = np.expand_dims(test_image, axis=0)
     gen_output = generator(test_image, training=False)

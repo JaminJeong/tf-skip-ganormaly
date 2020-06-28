@@ -38,7 +38,7 @@ import argparse
 
 parser = argparse.ArgumentParser(prog="training parameter",
                                  description="training parameter", add_help=True)
-parser.add_argument('-t', '--DATATYPE', help='data type.', default='mnist', required=True)
+parser.add_argument('-t', '--DATATYPE', help='data type.', default='mnist', required=False)
 args = parser.parse_args()
 
 from dataset import MnistDataset, FashinMnishDataset
@@ -71,10 +71,6 @@ if dataset_name == 'fashion_mnist':
     train_images, train_labels = fashin_mnish_dataset.get_train_data()
     test_images, test_labels = fashin_mnish_dataset.get_test_data()
 
-test_len = len(test_images)
-
-test_images = test_images.reshape(-1, 28, 28, 1).astype('float32')
-
 train_images = train_images.reshape(-1, 28, 28, 1).astype('float32')
 test_images = test_images.reshape(-1, 28, 28, 1).astype('float32')
 
@@ -99,8 +95,6 @@ test_dataset = tf.data.Dataset.from_tensor_slices(test_images)
 test_dataset = test_dataset.map(image_augmentation,
                                   num_parallel_calls=tf.data.experimental.AUTOTUNE)
 test_dataset = test_dataset.batch(batch_size=BATCH_SIZE)
-
-OUTPUT_CHANNELS = 3
 
 from model import Generator, Discriminator, generate_images
 from model import generator_loss, discriminator_loss
@@ -161,11 +155,11 @@ def train_step(input_image, target, epoch):
 # * On each epoch it iterates over the training dataset, printing a '.' for each example.
 # * It saves a checkpoint every 20 epochs.
 
-def fit(train_ds, epochs, test_ds, test_len):
+def fit(train_ds, epochs, test_ds):
   for epoch in range(epochs):
     start = time.time()
 
-    for example_input, example_target in test_ds:
+    for example_input, example_target in test_ds.take(1):
       generate_images(f"./output/epoch_{epoch}.jpg", generator, example_input, example_target)
     print("Epoch: ", epoch)
 
@@ -193,7 +187,7 @@ def fit(train_ds, epochs, test_ds, test_len):
 
 # Now run the training loop:
 
-fit(train_dataset, EPOCHS, test_dataset, test_len)
+fit(train_dataset, EPOCHS, test_dataset)
 
 # restoring the latest checkpoint in checkpoint_dir
 checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir))

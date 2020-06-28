@@ -3,7 +3,6 @@ from tensorflow.keras import layers
 
 IMG_WIDTH = 28
 IMG_HEIGHT = 28
-OUTPUT_CHANNELS = 3
 
 class Conv(tf.keras.Model):
   def __init__(self, filters, kernel_size, strides, padding='same',

@@ -74,9 +74,8 @@ class FashinMnishDataset:
 
         parameter_list = ['gaussian', 'localvar', 'poisson', 'salt', 'pepper', 's&p', 'speckle']
 
-        test_images_list = [random_noise(x, mode=parameter_list[random.randint(0, len(parameter_list) - 1)]) for x in self.test_images]
-        self.test_images = np.array(test_images_list)
-
+        self.random_noise_test_data = np.array([255 * random_noise(x, mode=parameter_list[random.randint(0, len(parameter_list) - 1)]) \
+                                                for x in self.test_images])
 
     def get_train_data(self):
         return self.train_images, self.train_labels
@@ -84,3 +83,5 @@ class FashinMnishDataset:
     def get_test_data(self):
         return self.test_images, self.test_labels
 
+    def get_random_noise_test_data(self):
+        return self.test_images, self.test_labels
