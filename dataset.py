@@ -58,7 +58,7 @@ class MnistDataset:
 
 from skimage.util import random_noise
 
-class FashinMnishDataset:
+class FashinMnistDataset:
     """
     FashinMnishDataset
     """

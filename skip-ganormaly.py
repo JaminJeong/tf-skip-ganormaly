@@ -41,7 +41,7 @@ parser = argparse.ArgumentParser(prog="training parameter",
 parser.add_argument('-t', '--DATATYPE', help='data type.', default='mnist', required=False)
 args = parser.parse_args()
 
-from dataset import MnistDataset, FashinMnishDataset
+from dataset import MnistDataset, FashinMnistDataset
 
 # from IPython import display
 
@@ -67,9 +67,9 @@ if dataset_name == 'mnist':
     train_images, train_labels = mnist_dataset.get_train_data()
     test_images, test_labels = mnist_dataset.get_test_data()
 if dataset_name == 'fashion_mnist':
-    fashin_mnish_dataset = FashinMnishDataset()
-    train_images, train_labels = fashin_mnish_dataset.get_train_data()
-    test_images, test_labels = fashin_mnish_dataset.get_test_data()
+    fashin_mnist_dataset = FashinMnistDataset()
+    train_images, train_labels = fashin_mnist_dataset.get_train_data()
+    test_images, test_labels = fashin_mnist_dataset.get_test_data()
 
 train_images = train_images.reshape(-1, 28, 28, 1).astype('float32')
 test_images = test_images.reshape(-1, 28, 28, 1).astype('float32')
