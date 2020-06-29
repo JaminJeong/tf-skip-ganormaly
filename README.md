@@ -20,6 +20,9 @@ epoch_0_0.jpg
 ....
 ```
 
+## Result Image
+![fashin mnish](./0_idx_280_anomaly_score_2.535538911819458_0.jpg)
+
 ## Inference
 - label number : 0
 - idx : 16 
