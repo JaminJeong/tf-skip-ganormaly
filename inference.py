@@ -38,11 +38,10 @@ if __name__ == "__main__":
 
   print("Compute anomaly scores!!")
 
-  for idx, (test_image, test_label) in enumerate(zip(random_noise_test_images, test_labels)):
-    if idx % 2 == 0:
-      test_image = (test_image / 127.5) - 1
-    else:
-      test_image = (test_images[idx] / 127.5) - 1
+  for idx, (test_image, test_label) in enumerate(zip(test_images, test_labels)):
+    if dataset_name == 'fashion_mnist' and idx % 2 == 1:
+      test_image = random_noise_test_images[idx]
+    test_image = (test_image / 127.5) - 1
     test_image = np.expand_dims(test_image, axis=0)
     gen_output = generator(test_image, training=False)
     disc_real_output = discriminator([test_image, test_image], training=False)
